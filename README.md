@@ -19,5 +19,5 @@ Retreive metadatas from CrossRef API & fill a given template by interpreting  [H
 Plugin under development
 
 ## Roadmap
-- [] Datacite query when Crossref doesn't returns document
-- [] Some others contextual metadas to pull according to document type
+- [ ] Datacite query when Crossref doesn't returns document
+- [ ] Some others contextual metadas to pull according to document type
