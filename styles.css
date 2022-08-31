@@ -1,0 +1,21 @@
+/*
+
+This CSS file will be included with your plugin, and
+available in the app when your plugin is enabled.
+
+If your plugin does not need CSS, delete this file.
+
+*/
+
+.pathForm {
+    display: flex;
+}
+
+.pathForm input {
+    flex-grow: 1;
+}
+
+.submitBtn {
+    background-color: var(--h2-color) !important;
+    margin-left: 20px;
+}

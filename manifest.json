@@ -1,0 +1,10 @@
+{
+    "id": "reffiler",
+    "name": "RefFiller ",
+    "version": "1.0.0",
+    "minAppVersion": "0.15.0",
+    "description": "Retreive metadatas from CrossRef API & fill a given template",
+    "author": "r4ph3rd",
+    "authorUrl": "https://github.com/R4ph3rd",
+    "isDesktopOnly": false
+}
