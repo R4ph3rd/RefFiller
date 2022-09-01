@@ -7,8 +7,11 @@ Some parts of this code has been made by him/her.
 
 import { App, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import { RefModal } from 'modal';
+import { partials } from 'handlebars';
+import { reverse } from 'dns';
 
 const axios = require('axios');
+const handlebars = require('handlebars');
 
 interface RefFillerSettings {
 	RefFiller: string;
@@ -22,9 +25,17 @@ const DEFAULT_SETTINGS: RefFillerSettings = {
 
 export default class RefFillerPlugin extends Plugin {
 	settings: RefFillerSettings;
+	template: any;
 
 	async onload() {
 		await this.loadSettings();
+
+		const templatePath = this.settings.templatePath;
+		const templateFile = this.app.vault
+			.getFiles()
+			.find((f) => f.path === templatePath);
+		const templateText = await this.app.vault.read(templateFile);
+		this.template = handlebars.compile(templateText);
 
 		// This creates an icon in the left ribbon.
 		this.addRibbonIcon("book", "Query reference by DOI", () => {
@@ -34,8 +45,7 @@ export default class RefFillerPlugin extends Plugin {
 						new Notice("Cannot find a document with this DOI")
 						throw err;
 					} 
-					const data = res.data.message;
-					console.log('data', data)
+					let data = res.data.message;
 					this.openAndFillTemplate({data});
 				})
 			}).open();
@@ -53,22 +63,19 @@ export default class RefFillerPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 
-	private readonly openAndFillTemplate = ({shouldSplit = false, data = {}}) => {
-		console.log('open fill function ', this.settings)
-		const filePath = this.settings.templatePath;
-		console.log(filePath)
-		const targetFile = this.app.vault
-			.getFiles()
-			.find((f) => f.path === filePath);
-	
-		if (targetFile) {
+	private readonly openAndFillTemplate = async ({shouldSplit = false, data = {}}) => {
+		if (this.template) {
+			data.publicationDate = data.published['date-parts'][0].reverse().join('-');
+			data.authors = data.author.map(auth => '@' + auth.given + auth.family).join(', ');
+			console.log('data', data)
+			console.log(this.template(data))
+
 			let leaf = this.app.workspace.getMostRecentLeaf();
-	
 			const createLeaf = shouldSplit || leaf.getViewState().pinned;
 			if (createLeaf) {
 			leaf = this.app.workspace.createLeafBySplit(leaf);
 			}
-			leaf.openFile(targetFile);
+			leaf.openFile(this.template(data));
 		} else {
 			new Notice('Cannot find a file with the required name');
 			// this.plugin.saveData();
