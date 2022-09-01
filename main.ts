@@ -5,10 +5,8 @@ Some parts of this code has been made by him/her.
 -------
 */
 
-import { App, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Modal, Notice, Plugin, PluginSettingTab, Setting} from 'obsidian';
 import { RefModal } from 'modal';
-import { partials } from 'handlebars';
-import { reverse } from 'dns';
 
 const axios = require('axios');
 const handlebars = require('handlebars');
@@ -66,6 +64,7 @@ export default class RefFillerPlugin extends Plugin {
 	private readonly openAndFillTemplate = async ({shouldSplit = false, data = {}}) => {
 		if (this.template) {
 			data.publicationDate = data.published['date-parts'][0].reverse().join('-');
+			data.publicationYear = data.published['date-parts'][0][2];
 			data.authors = data.author.map(auth => '@' + auth.given + auth.family).join(', ');
 			console.log('data', data)
 			console.log(this.template(data))
@@ -76,17 +75,29 @@ export default class RefFillerPlugin extends Plugin {
 				leaf = this.app.workspace.createLeafBySplit(leaf);
 			}
 
-			try {
-				const path = data.title + '_' + data.subtitle + '.md';
-				const file = this.app.vault.create(path, this.template(data));
-			} catch (err){
-				throw err;
+			const path = data.title + '_' + data.subtitle + '.md';
+			const file = this.app.vault.getAbstractFileByPath(path)
+
+			if (!file){
+				try {
+					const file = this.app.vault.create(path, this.template(data)) as TFile;
+					leaf.openFile(file);
+				} catch (err){
+					new Notice("Couln't create a new file.")
+					throw err;
+				}
+			} else {
+				const files = this.app.vault
+					.getMarkdownFiles()
+					.filter((f) => f.path.toLowerCase() == path.toLowerCase());
+				if (files[0]){
+					leaf.openFile(files[0]);
+					new Notice('File was already created')
+				}
 			}
 
 		} else {
 			new Notice('Cannot find a file with the required name');
-			// this.plugin.saveData();
-			// this.redraw();
 		}
 	};
 }
