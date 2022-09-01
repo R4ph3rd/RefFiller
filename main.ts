@@ -73,9 +73,16 @@ export default class RefFillerPlugin extends Plugin {
 			let leaf = this.app.workspace.getMostRecentLeaf();
 			const createLeaf = shouldSplit || leaf.getViewState().pinned;
 			if (createLeaf) {
-			leaf = this.app.workspace.createLeafBySplit(leaf);
+				leaf = this.app.workspace.createLeafBySplit(leaf);
 			}
-			leaf.openFile(this.template(data));
+
+			try {
+				const path = data.title + '_' + data.subtitle + '.md';
+				const file = this.app.vault.create(path, this.template(data));
+			} catch (err){
+				throw err;
+			}
+
 		} else {
 			new Notice('Cannot find a file with the required name');
 			// this.plugin.saveData();
