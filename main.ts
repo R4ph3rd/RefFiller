@@ -5,8 +5,9 @@ Some parts of this code has been made by him/her.
 -------
 */
 
-import { App, Modal, Notice, Plugin, PluginSettingTab, Setting} from 'obsidian';
+import { App, Notice, Plugin, PluginSettingTab, Setting} from 'obsidian';
 import { RefModal } from 'modal';
+// import {openAndFillTemplate} from 'template'
 
 const axios = require('axios');
 const handlebars = require('handlebars');
@@ -29,11 +30,15 @@ export default class RefFillerPlugin extends Plugin {
 		await this.loadSettings();
 
 		const templatePath = this.settings.templatePath;
-		const templateFile = this.app.vault
+		const templateFile : TFile = this.app.vault
 			.getFiles()
 			.find((f) => f.path === templatePath);
 		const templateText = await this.app.vault.read(templateFile);
 		this.template = handlebars.compile(templateText);
+
+		handlebars.registerHelper("list", function(context, options) {
+			return context.reduce((acc, cur) => acc + options.fn(cur), '');
+		  });
 
 		// This creates an icon in the left ribbon.
 		this.addRibbonIcon("book", "Query reference by DOI", () => {
@@ -63,8 +68,7 @@ export default class RefFillerPlugin extends Plugin {
 
 	private readonly openAndFillTemplate = async ({shouldSplit = false, data = {}}) => {
 		if (this.template) {
-			data.publicationDate = data.published['date-parts'][0].reverse().join('-');
-			data.publicationYear = data.published['date-parts'][0][2];
+			data.publicationYear = data.published['date-parts'][0][0];
 			data.authors = data.author.map(auth => '@' + auth.given + auth.family).join(', ');
 			console.log('data', data)
 			console.log(this.template(data))
@@ -76,28 +80,26 @@ export default class RefFillerPlugin extends Plugin {
 			}
 
 			const path = data.title + '_' + data.subtitle + '.md';
-			const file = this.app.vault.getAbstractFileByPath(path)
+			const files = this.app.vault
+					.getMarkdownFiles()
+					.filter((f) => f.name.toLowerCase().trim() == path.toLowerCase().trim());
 
-			if (!file){
+			if (files[0]){
+				leaf.openFile(files[0]);
+				new Notice('File was already created')
+			} else {
 				try {
 					const file = this.app.vault.create(path, this.template(data)) as TFile;
 					leaf.openFile(file);
-				} catch (err){
+				} 
+				catch (err){
 					new Notice("Couln't create a new file.")
 					throw err;
-				}
-			} else {
-				const files = this.app.vault
-					.getMarkdownFiles()
-					.filter((f) => f.path.toLowerCase() == path.toLowerCase());
-				if (files[0]){
-					leaf.openFile(files[0]);
-					new Notice('File was already created')
 				}
 			}
 
 		} else {
-			new Notice('Cannot find a file with the required name');
+			new Notice('Cannot find the template');
 		}
 	};
 }
