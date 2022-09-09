@@ -79,7 +79,12 @@ export default class RefFillerPlugin extends Plugin {
 				leaf = this.app.workspace.createLeafBySplit(leaf);
 			}
 
-			const path = data.title + '_' + data.subtitle + '.md';
+			let title : string = Array.isArray(data.title) ? data.title[0] : data.title;
+			let subtitle : string = Array.isArray(data.subtitle) ? data.subtitle[0] : data.subtitle;
+
+			
+			const path = title.replace(/[\:\/\\]/gi, '_') + (subtitle ? '_' + subtitle.replace(/\:\/\\/, '') : '') + '.md';
+			console.log(title, subtitle, path)
 			const files = this.app.vault
 					.getMarkdownFiles()
 					.filter((f) => f.name.toLowerCase().trim() == path.toLowerCase().trim());
