@@ -49,7 +49,13 @@ export default class RefFillerPlugin extends Plugin {
 						throw err;
 					} 
 					let data = res.data.message;
-					this.openAndFillTemplate({data});
+
+					try{
+						this.openAndFillTemplate({data});
+					}
+					catch {
+						new Notice("An issue occured while parsing data. See console for more details.")
+					}
 				})
 			}).open();
 		});
@@ -68,10 +74,11 @@ export default class RefFillerPlugin extends Plugin {
 
 	private readonly openAndFillTemplate = async ({shouldSplit = false, data = {}}) => {
 		if (this.template) {
-			data.publicationYear = data.published['date-parts'][0][0];
+			console.log("data : ", data)
+			data.publicationYear = data.published ? data.published['date-parts'][0][0] :
+									data.created ? data.created['date-parts'][0][0] + ' (creation time)' :
+									'undefined';
 			data.authors = data.author.map(auth => '@' + auth.given + auth.family).join(', ');
-			console.log('data', data)
-			console.log(this.template(data))
 
 			let leaf = this.app.workspace.getMostRecentLeaf();
 			const createLeaf = shouldSplit || leaf.getViewState().pinned;
@@ -84,10 +91,12 @@ export default class RefFillerPlugin extends Plugin {
 
 			
 			const path = title.replace(/[\:\/\\]/gi, '_') + (subtitle ? '_' + subtitle.replace(/\:\/\\/, '') : '') + '.md';
-			console.log(title, subtitle, path)
 			const files = this.app.vault
 					.getMarkdownFiles()
-					.filter((f) => f.name.toLowerCase().trim() == path.toLowerCase().trim());
+					.filter(f =>{
+						return f.name.toLowerCase().trim().normalize() == path.toLowerCase().trim().normalize();
+					} )
+					console.log(files)
 
 			if (files[0]){
 				leaf.openFile(files[0]);
@@ -95,7 +104,8 @@ export default class RefFillerPlugin extends Plugin {
 			} else {
 				try {
 					const file = this.app.vault.create(path, this.template(data)) as TFile;
-					leaf.openFile(file);
+					console.log(await file)
+					leaf.openFile(await file.path);
 				} 
 				catch (err){
 					new Notice("Couln't create a new file.")
