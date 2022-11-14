@@ -29,17 +29,6 @@ export default class RefFillerPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
-		const templatePath = this.settings.templatePath;
-		const templateFile : TFile = this.app.vault
-			.getFiles()
-			.find((f) => f.path === templatePath);
-		const templateText = await this.app.vault.read(templateFile);
-		this.template = handlebars.compile(templateText);
-
-		handlebars.registerHelper("list", function(context, options) {
-			return context.reduce((acc, cur) => acc + options.fn(cur), '');
-		  });
-
 		// This creates an icon in the left ribbon.
 		this.addRibbonIcon("book", "Query reference by DOI", () => {
 			new RefModal(this.app, (doi) => {
@@ -62,6 +51,22 @@ export default class RefFillerPlugin extends Plugin {
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new RefFillerTab(this.app, this));
+
+		const templatePath = this.settings.templatePath;
+		const templateFile : TFile = this.app.vault
+			.getFiles()
+			.find((f) => f.path === templatePath);
+
+			if (!templateFile) {
+				throw Error("Couldn't find template file.");
+			}
+		const templateText = await this.app.vault.read(templateFile);
+		this.template = handlebars.compile(templateText);
+
+		handlebars.registerHelper("list", function(context, options) {
+			return context.reduce((acc, cur) => acc + options.fn(cur), '');
+		  });
+
 	}
 
 	async loadSettings() {
