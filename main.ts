@@ -5,7 +5,8 @@ Some parts of this code has been made by him/her.
 -------
 */
 
-import { App, Notice, Plugin, PluginSettingTab, Setting} from 'obsidian';
+import { App, Notice, Plugin, Setting} from 'obsidian';
+import {RefFillerSettingTab} from './settings'
 import { RefModal } from 'modal';
 // import {openAndFillTemplate} from 'template'
 
@@ -13,13 +14,11 @@ const axios = require('axios');
 const handlebars = require('handlebars');
 
 interface RefFillerSettings {
-	RefFiller: string;
 	templatePath: string;
 }
 
-const DEFAULT_SETTINGS: RefFillerSettings = {
-	RefFiller: 'default',
-	templatePath: '/General/Templates/Template fiche de lecture'
+const DEFAULT_SETTINGS: Partial<RefFillerSettings> = {
+	templatePath: '/templatePathPlaceholder' ///General/Templates/Template fiche de lecture
 }
 
 export default class RefFillerPlugin extends Plugin {
@@ -28,20 +27,14 @@ export default class RefFillerPlugin extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
+		// This adds a settings tab so the user can configure various aspects of the plugin
+		this.addSettingTab(new RefFillerSettingTab(this.app, this));
 
-		const templatePath = this.settings.templatePath;
-		const templateFile : TFile = this.app.vault
-			.getFiles()
-			.find((f) => f.path === templatePath);
-		const templateText = await this.app.vault.read(templateFile);
-		this.template = handlebars.compile(templateText);
-
-		handlebars.registerHelper("list", function(context, options) {
-			return context.reduce((acc, cur) => acc + options.fn(cur), '');
-		  });
+		this.loadTemplate();
 
 		// This creates an icon in the left ribbon.
 		this.addRibbonIcon("book", "Query reference by DOI", () => {
+			console.log('add ribon icopn')
 			new RefModal(this.app, (doi) => {
 				axios.get('https://api.crossref.org/works/' + doi).then((res : object , err : object) => {
 					if (!res){
@@ -59,9 +52,22 @@ export default class RefFillerPlugin extends Plugin {
 				})
 			}).open();
 		});
+	}
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new RefFillerTab(this.app, this));
+	private async loadTemplate(){
+		const templatePath = this.settings.templatePath;
+		const templateFile : TFile = this.app.vault
+			.getFiles()
+			.find((f) => f.path === templatePath );
+		console.log('template file : ' + templateFile + ' template path :' + templatePath)
+		const templateText = await this.app.vault.read(templateFile);
+		this.template = handlebars.compile(templateText);
+
+		console.log('template text : ' + templateText)
+
+		handlebars.registerHelper("list", function(context, options) {
+			return context.reduce((acc, cur) => acc + options.fn(cur), '');
+		});
 	}
 
 	async loadSettings() {
@@ -91,6 +97,7 @@ export default class RefFillerPlugin extends Plugin {
 
 			
 			const path = title.replace(/[\:\/\\]/gi, '_') + (subtitle ? '_' + subtitle.replace(/\:\/\\/, '') : '') + '.md';
+			console.log("path : " + path)
 			const files = this.app.vault
 					.getMarkdownFiles()
 					.filter(f =>{
@@ -119,30 +126,31 @@ export default class RefFillerPlugin extends Plugin {
 	};
 }
 
-class RefFillerTab extends PluginSettingTab {
-	plugin: RefFillerPlugin;
 
-	constructor(app: App, plugin: RefFillerPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
+// class RefFillerTab extends PluginSettingTab {
+// 	plugin: RefFillerPlugin;
 
-	display(): void {
-		const {containerEl} = this;
+// 	constructor(app: App, plugin: RefFillerPlugin) {
+// 		super(app, plugin);
+// 		this.plugin = plugin;
+// 	}
 
-		containerEl.empty();
+// 	display(): void {
+// 		const {containerEl} = this;
 
-		containerEl.createEl('h2', {text: 'RefFiller settings'});
+// 		containerEl.empty();
 
-		new Setting(containerEl)
-			.setName('Template path')
-			.setDesc('File that will be used to fill retrieved metadatas')
-			.addText(text => text
-				.setPlaceholder('Template path')
-				.setValue(this.plugin.settings.templatePath)
-				.onChange(async (value) => {
-					this.plugin.settings.templatePath = value;
-					await this.plugin.saveSettings();
-				}));
-	}
-}
+// 		containerEl.createEl('h2', {text: 'RefFiller settings'});
+
+// 		new Setting(containerEl)
+// 			.setName('Template path')
+// 			.setDesc('File that will be used to fill retrieved metadatas')
+// 			.addText(text => text
+// 				.setPlaceholder('Template path')
+// 				.setValue(this.plugin.settings.templatePath)
+// 				.onChange(async (value) => {
+// 					this.plugin.settings.templatePath = value;
+// 					await this.plugin.saveSettings();
+// 				}));
+// 	}
+// }
